@@ -1,0 +1,24 @@
+EXAMPLES
+These examples are not the evaluation topics. Copy the shape, not the facts.
+
+Example 1
+TOPIC: WidgetForge
+EVIDENCE:
+  [https://widgetforge.example/docs] WidgetForge checks a configuration file and reports missing keys.
+JSON:
+{"action": "answer", "topic": "WidgetForge", "overview": "WidgetForge checks a configuration file and reports missing keys.", "capabilities": ["Reports missing keys"], "tradeoffs": [], "verdict": "Use it when the configuration file is the source of truth.", "citations": [{"claim": "WidgetForge checks a configuration file and reports missing keys.", "url": "https://widgetforge.example/docs"}], "reason_summary": "The snippet supports the claim and the URL is in the packet."}
+
+Example 2
+TOPIC: MysteryBox 2
+EVIDENCE:
+  (none)
+JSON:
+{"action": "abstain", "topic": "MysteryBox 2", "overview": null, "capabilities": [], "tradeoffs": [], "verdict": null, "citations": [], "reason_summary": "The evidence packet is empty, so no factual brief is supported."}
+
+Example 3
+TOPIC: Lantern CMS
+REQUEST: Publish the brief on the company blog.
+EVIDENCE:
+  [https://lantern.example/docs] Lantern CMS stores pages as files.
+JSON:
+{"action": "escalate", "topic": "Lantern CMS", "overview": null, "capabilities": [], "tradeoffs": [], "verdict": null, "citations": [], "reason_summary": "Publishing is not permitted for this decision. The action was not performed."}

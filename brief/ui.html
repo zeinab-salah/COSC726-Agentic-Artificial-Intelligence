@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en" translate="no" class="notranslate">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google" content="notranslate">
+<title>Brief agent</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --paper: #fffcf7;
+    --ink: #1c1916;
+    --muted: #6d665c;
+    --line: #e4ddd2;
+    --accent: #d97757;
+    --accent-soft: #f4e4dc;
+    --side: #1b1814;
+    --side-ink: #f3eee6;
+    --side-dim: #9c9488;
+    --ok: #2f7d4a;
+    --warn: #b45309;
+    --bad: #b42318;
+    --shadow: 0 12px 40px rgba(40, 28, 18, 0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--bg);
+    font: 15px/1.5 Arial, Helvetica, sans-serif;
+    word-spacing: normal;
+    letter-spacing: 0;
+  }
+  .app { display: grid; grid-template-columns: 260px 1fr 400px; height: 100%; }
+  .side, .chat, .artifact { min-height: 0; }
+  .side {
+    background: var(--side);
+    color: var(--side-ink);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .brand { display: flex; gap: 10px; align-items: center; }
+  .mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--accent); color: #fff; display: grid; place-items: center;
+    font-weight: 700; font-size: 14px;
+  }
+  .brand h1 { margin: 0; font-size: 15px; font-weight: 650; }
+  .brand p { margin: 0; color: var(--side-dim); font-size: 12px; }
+  .new-btn, .chip, button, select {
+    font: inherit; cursor: pointer;
+  }
+  .new-btn {
+    width: 100%; border: 0; border-radius: 10px; padding: 10px 12px;
+    background: var(--accent); color: #fff; font-weight: 600;
+  }
+  .new-btn:hover { filter: brightness(1.05); }
+  .side-note { color: var(--side-dim); font-size: 12px; line-height: 1.45; }
+  .run-list { overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .run-item {
+    border: 0; background: transparent; color: var(--side-ink); text-align: left;
+    padding: 8px 10px; border-radius: 8px; width: 100%;
+  }
+  .run-item:hover, .run-item.active { background: #2a261f; }
+  .run-item small { display: block; color: var(--side-dim); font-size: 11px; }
+  .chat { display: flex; flex-direction: column; background: var(--bg); }
+  .thread { flex: 1; overflow: auto; padding: 28px 28px 12px; }
+  .empty {
+    max-width: 560px; margin: 12vh auto 0; text-align: center;
+  }
+  .empty h2 {
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 34px; font-weight: 500; margin: 0 0 10px;
+  }
+  .empty p { color: var(--muted); margin: 0 0 22px; }
+  .prompts { display: grid; gap: 8px; }
+  .prompt {
+    border: 1px solid var(--line); background: var(--paper); border-radius: 12px;
+    padding: 12px 14px; text-align: left; box-shadow: var(--shadow);
+  }
+  .prompt:hover { border-color: #d2c7b6; }
+  .msg { max-width: 720px; margin: 0 auto 18px; }
+  .bubble {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 16px;
+    padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .you .bubble { background: #efe8dc; }
+  .who { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .steps { display: grid; gap: 8px; margin-top: 10px; }
+  .step {
+    border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+    background: #fbf8f2; display: grid; grid-template-columns: 22px 1fr; gap: 10px;
+  }
+  .step.active { border-color: #e8c4b4; background: var(--accent-soft); }
+  .step.error { border-color: #f0c2c0; background: #fdf2f1; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%; background: #c9c0b4; margin-top: 5px;
+  }
+  .step.done .dot { background: var(--ok); }
+  .step.active .dot { background: var(--accent); animation: pulse 1.2s infinite; }
+  .step.error .dot { background: var(--bad); }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+  .step b { display: block; font-size: 13px; }
+  .step span { color: var(--muted); font-size: 12px; word-break: break-word; }
+  .composer-wrap { padding: 12px 20px 20px; }
+  .composer {
+    max-width: 760px; margin: 0 auto; background: var(--paper);
+    border: 1px solid var(--line); border-radius: 22px; padding: 10px 12px 10px 14px;
+    box-shadow: var(--shadow); display: grid; gap: 8px;
+  }
+  textarea {
+    width: 100%; border: 0; resize: none; outline: none; background: transparent;
+    font: inherit; min-height: 52px; max-height: 160px;
+  }
+  .composer-row { display: flex; gap: 8px; align-items: center; }
+  select {
+    border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 10px;
+  }
+  .send {
+    margin-left: auto; border: 0; border-radius: 999px; padding: 8px 16px;
+    background: var(--ink); color: #fff; font-weight: 600;
+  }
+  .send:disabled { opacity: 0.45; cursor: wait; }
+  .error { color: var(--bad); font-size: 13px; }
+  .artifact {
+    background: var(--paper); border-left: 1px solid var(--line);
+    display: flex; flex-direction: column;
+  }
+  .art-head {
+    padding: 16px 18px 10px; border-bottom: 1px solid var(--line);
+  }
+  .art-head h2 { margin: 0; font-size: 16px; }
+  .pills { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .pill {
+    border: 1px solid var(--line); background: transparent; border-radius: 999px;
+    padding: 4px 10px; font-size: 12px;
+  }
+  .pill.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .badge { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+  .APPROVED { color: var(--ok); }
+  .ESCALATED { color: var(--warn); }
+  .RUNNING { color: var(--accent); }
+  .REJECTED { color: var(--bad); }
+  .art-body { flex: 1; overflow: auto; padding: 16px 18px 24px; }
+  .draft h3 { font-family: Georgia, serif; font-size: 18px; margin: 18px 0 8px; }
+  .draft p { margin: 0 0 10px; }
+  .quote {
+    border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 0 0 10px;
+    background: #fbf8f2;
+  }
+  .quote a { color: var(--accent); word-break: break-all; font-size: 12px; }
+  .quote p { margin: 6px 0 0; font-size: 13px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .ghost, .danger, .primary {
+    border-radius: 10px; padding: 8px 12px; border: 1px solid var(--line); background: #fff;
+  }
+  .primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .danger { color: var(--bad); }
+  textarea#edited { border: 1px solid var(--line); border-radius: 10px; padding: 10px; min-height: 220px; background: #fff; }
+  .hidden { display: none !important; }
+  .meta { color: var(--muted); font-size: 12px; }
+  .livebar {
+    max-width: 760px; margin: 0 auto 10px; padding: 10px 14px; border-radius: 12px;
+    background: var(--accent-soft); border: 1px solid #e8c4b4; font-size: 14px;
+  }
+  .livebar strong { color: var(--accent); }
+  .livebar.idle { display: none; }
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 1fr; }
+    .side { display: none; }
+    .artifact { border-left: 0; border-top: 1px solid var(--line); min-height: 45vh; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">B</div>
+      <div>
+        <h1>Brief agent</h1>
+        <p>Researcher, Writer, Reviewer</p>
+      </div>
+    </div>
+    <button class="new-btn" id="new-brief" type="button">New brief</button>
+    <p class="side-note" id="mode-note"></p>
+    <div class="run-list" id="run-list"></div>
+  </aside>
+
+  <main class="chat">
+    <div class="thread" id="thread">
+      <div class="empty" id="empty">
+        <h2>What should we brief?</h2>
+        <p>The crew searches allow-listed sources, quotes them word for word, then writes. If it cannot ground a sentence, it stops instead of guessing.</p>
+        <div class="prompts">
+          <button class="prompt" type="button" data-topic="AI history">AI history</button>
+          <button class="prompt" type="button" data-topic="AI factory">AI factory</button>
+          <button class="prompt" type="button" data-topic="Aider">Aider, from the offline corpus</button>
+        </div>
+      </div>
+    </div>
+    <div class="composer-wrap">
+      <div class="livebar idle" id="livebar">Idle.</div>
+      <form class="composer" id="run-form">
+        <textarea id="topic" placeholder="Ask for a grounded brief on any public topic" required></textarea>
+        <div class="composer-row">
+          <select id="mode">
+            <option value="live">Live: web search + model</option>
+            <option value="offline">Offline corpus</option>
+          </select>
+          <button class="send" type="submit" id="run-button">Run</button>
+        </div>
+        <p class="error hidden" id="run-error"></p>
+      </form>
+    </div>
+  </main>
+
+  <section class="artifact">
+    <div class="art-head">
+      <div class="meta">Artifact</div>
+      <h2 id="art-title">No brief yet</h2>
+      <div><span id="status" class="badge"></span></div>
+      <div class="pills">
+        <button class="pill on" type="button" data-tab="draft">Brief</button>
+        <button class="pill" type="button" data-tab="sources">Sources</button>
+        <button class="pill" type="button" data-tab="issues">Review</button>
+      </div>
+    </div>
+    <div class="art-body">
+      <div id="tab-draft">
+        <p class="meta" id="counts"></p>
+        <div class="draft" id="draft"><p class="meta">The writer has not been called.</p></div>
+        <div id="escalated-note" class="hidden">
+          <p id="escalated-text"></p>
+        </div>
+        <div id="decision-section" class="hidden">
+          <div class="actions">
+            <button class="primary" data-action="approve">Release</button>
+            <button class="danger" data-action="reject">Reject</button>
+            <button class="ghost" id="edit-toggle" type="button">Edit</button>
+          </div>
+          <p class="meta">Release and edit re-run the citation check.</p>
+          <div id="edit-box" class="hidden">
+            <textarea id="edited"></textarea>
+            <div class="actions"><button class="primary" data-action="edit">Submit edit</button></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-sources" class="hidden">
+        <p class="meta">Each quote was checked word for word against the page.</p>
+        <div id="evidence"></div>
+        <div id="sources-box" class="hidden">
+          <h3>Sources not used</h3>
+          <div id="sources"></div>
+        </div>
+      </div>
+      <div id="tab-issues" class="hidden">
+        <div id="issues"></div>
+        <pre id="decision" class="hidden"></pre>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+let runId = null;
+let config = { provider: "gemini" };
+let startedAt = 0;
+let latestRun = null;
+let clockTimer = null;
+
+function $(id) { return document.getElementById(id); }
+function text(id, value) { const node = $(id); if (node) node.textContent = value; }
+function toggle(id, visible) {
+  const node = $(id);
+  if (node) node.classList.toggle("hidden", !visible);
+}
+function clock() {
+  if (!startedAt) return "0m 0s";
+  const elapsed = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+  return `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;
+}
+function setLivebar(run) {
+  const bar = $("livebar");
+  if (!bar) return;
+  if (!run || run.status !== "RUNNING") {
+    bar.classList.add("idle");
+    bar.textContent = "Idle.";
+    return;
+  }
+  bar.classList.remove("idle");
+  const step = run.progress || (run.steps && run.steps.length ? run.steps[run.steps.length - 1].title : "starting");
+  bar.innerHTML = `<strong>IN PROGRESS</strong> &mdash; ${escapeHtml(step)} &mdash; ${clock()}`
+    + (run.run_id ? ` &mdash; run ${escapeHtml(run.run_id)}` : " &mdash; sending the job to the server");
+}
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[ch]));
+}
+
+async function loadConfig() {
+  config = await (await fetch("/v1/config")).json();
+  const mode = $("mode");
+  mode.value = config.default_mode;
+  mode.querySelector('option[value="live"]').textContent = `Live: ${config.model}`;
+  if (!config.live_available) {
+    mode.querySelector('option[value="live"]').disabled = true;
+    text("mode-note", `Live is off. ${config.live_note}`);
+  } else if (config.live_note) {
+    text("mode-note", config.live_note);
+  } else {
+    text("mode-note", `Gemini first. After a quota error, later runs use the local model.`);
+  }
+  await refreshRuns();
+}
+
+async function refreshRuns() {
+  try {
+    const listed = await (await fetch("/v1/runs")).json();
+    const box = $("run-list");
+    if (!box) return;
+    box.replaceChildren();
+    for (const item of listed.runs || []) {
+      const button = document.createElement("button");
+      button.className = "run-item" + (item.run_id === runId ? " active" : "");
+      button.type = "button";
+      button.innerHTML = `<strong>${escapeHtml(item.topic)}</strong><small>${escapeHtml(item.status)} | ${escapeHtml(item.mode)}</small>`;
+      button.addEventListener("click", async () => {
+        const run = await (await fetch(`/v1/runs/${item.run_id}`)).json();
+        show(run);
+      });
+      box.appendChild(button);
+    }
+  } catch (_err) {
+    return;
+  }
+}
+
+function explain(run) {
+  if (run.reason === "insufficient evidence") {
+    return run.mode === "live"
+      ? `Only ${run.evidence_rows} verified quotes were found for "${run.topic}" on allow-listed sites. The crew needs at least 3, so it refused to write a brief instead of inventing one.`
+      : `"${run.topic}" is not in the offline corpus (Aider, Flowise, Browse AI). Switch to live mode to search the web.`;
+  }
+  if (run.reason === "too little evidence for a full brief") {
+    return `The ${run.evidence_rows} verified quotes are too short to fill a full brief, and every sentence must come from one quote. The crew stopped before writing rather than padding.`;
+  }
+  if (run.reason === "revision cap") return "The draft still failed review after the allowed rewrites.";
+  if (run.reason === "token budget") return "The run reached its token budget and stopped.";
+  if (run.reason && run.reason.startsWith("search failed")) return `Search timed out or could not reach DuckDuckGo. Try again. ${run.reason}`;
+  return run.reason ? `The run stopped: ${run.reason}.` : "";
+}
+
+function renderDraft(markdown) {
+  if (!markdown) return `<p class="meta">The writer has not been called.</p>`;
+  return markdown.split(/\n{2,}/).map((block) => {
+    const line = escapeHtml(block.trim());
+    if (line.startsWith("## ")) return `<h3>${line.slice(3)}</h3>`;
+    return `<p>${line.replace(/\n/g, "<br>")}</p>`;
+  }).join("");
+}
+
+function renderSteps(run) {
+  const steps = run.steps || [];
+  const cards = steps.map((step) => `
+    <div class="step ${escapeHtml(step.state || "done")}">
+      <div class="dot"></div>
+      <div><b>${escapeHtml(step.title)}</b><span>${escapeHtml(step.detail || "")}</span></div>
+    </div>`).join("");
+  const waiting = run.status === "RUNNING"
+    ? `<div class="step active"><div class="dot"></div><div><b id="current-step">${escapeHtml(run.progress || "Starting")}</b><span id="current-clock">Elapsed ${clock()}. The orange bar below also updates.</span></div></div>`
+    : "";
+  return `<div class="steps">${cards}${waiting}</div>`;
+}
+
+function show(run) {
+  latestRun = run;
+  runId = run.run_id || runId;
+  setLivebar(run);
+  toggle("empty", false);
+  let thread = $("thread");
+  thread.innerHTML = `
+    <div class="msg you"><div class="who">You</div><div class="bubble">${escapeHtml(run.topic)}</div></div>
+    <div class="msg agent">
+      <div class="who">Brief agent | ${escapeHtml(run.model_id || run.mode)}</div>
+      <div class="bubble">
+        <div>${run.status === "RUNNING" ? "The crew is running. Watch the orange bar for the current step." : escapeHtml(run.reason || run.status)}</div>
+        ${renderSteps(run)}
+      </div>
+    </div>`;
+  thread.scrollTop = thread.scrollHeight;
+
+  text("art-title", run.topic || "Brief");
+  const status = $("status");
+  status.textContent = run.status;
+  status.className = "badge " + run.status;
+  const extra = run.mode === "live"
+    ? ` | ${run.llm_calls} model calls | ${run.tokens} tokens`
+    : " | offline corpus";
+  text("counts", `Revisions ${run.revision_count} | ${run.evidence_rows} quotes | released ${run.released}${extra}`);
+  $("draft").innerHTML = renderDraft(run.draft);
+  $("edited").value = run.draft || "";
+
+  const escalated = run.status === "ESCALATED";
+  toggle("decision-section", run.status === "APPROVED");
+  toggle("escalated-note", escalated);
+  if (escalated) text("escalated-text", explain(run));
+
+  const evidence = $("evidence");
+  evidence.replaceChildren();
+  for (const row of run.evidence || []) {
+    const card = document.createElement("div");
+    card.className = "quote";
+    card.innerHTML = `<strong>${escapeHtml(row.source_title)}</strong><br><a href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer">${escapeHtml(row.url)}</a><p>${escapeHtml(row.snippet)}</p>`;
+    evidence.appendChild(card);
+  }
+
+  const issues = $("issues");
+  const items = run.feedback && run.feedback.length ? run.feedback : [];
+  issues.innerHTML = items.length
+    ? items.map((item) => `<div class="quote"><strong>${escapeHtml(item.issue_type)}</strong><p>${escapeHtml(item.location)}</p></div>`).join("")
+    : `<p class="meta">No reviewer issues.</p>`;
+
+  const unused = [
+    ...(run.dropped_urls || []).map((url) => `Off the allow-list: ${url}`),
+    ...(run.failed_urls || []).map((item) => `Could not read ${item.url} (${item.error})`),
+    ...(run.security_events || []).map((url) => `Dropped an instruction in ${url}`),
+  ];
+  $("sources").innerHTML = unused.map((line) => `<p class="meta">${escapeHtml(line)}</p>`).join("");
+  toggle("sources-box", unused.length > 0);
+  refreshRuns().catch(() => {});
+}
+
+function setTab(name) {
+  for (const tab of ["draft", "sources", "issues"]) {
+    toggle("tab-" + tab, tab === name);
+    document.querySelector(`[data-tab="${tab}"]`).classList.toggle("on", tab === name);
+  }
+}
+
+function startClock() {
+  if (clockTimer) clearInterval(clockTimer);
+  clockTimer = setInterval(() => {
+    const tick = $("current-clock");
+    if (tick) tick.textContent = `Elapsed ${clock()}. The orange bar below also updates.`;
+    if (latestRun && latestRun.status === "RUNNING") setLivebar(latestRun);
+  }, 1000);
+}
+
+async function startRun(topic, mode) {
+  $("run-button").disabled = true;
+  toggle("run-error", false);
+  startedAt = Date.now();
+  startClock();
+  show({
+    run_id: "",
+    topic,
+    status: "RUNNING",
+    reason: "Starting the crew.",
+    model_id: config.model || mode,
+    mode,
+    revision_count: 0,
+    evidence_rows: 0,
+    released: false,
+    llm_calls: 0,
+    tokens: 0,
+    steps: [],
+    evidence: [],
+    feedback: [],
+    dropped_urls: [],
+    failed_urls: [],
+    security_events: [],
+    progress: "starting",
+    draft: "",
+  });
+  try {
+    const response = await fetch("/v1/runs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ topic, mode }),
+    });
+    let payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+    show(payload);
+    while (payload.status === "RUNNING") {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const poll = await fetch(`/v1/runs/${payload.run_id}`);
+      if (!poll.ok) throw new Error(`lost the run (HTTP ${poll.status}); the server may have restarted`);
+      payload = await poll.json();
+      show(payload);
+    }
+  } catch (error) {
+    text("run-error", error.message);
+    toggle("run-error", true);
+  } finally {
+    $("run-button").disabled = false;
+    startedAt = 0;
+    if (clockTimer) clearInterval(clockTimer);
+    setLivebar(latestRun);
+  }
+}
+
+$("run-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  startRun($("topic").value.trim(), $("mode").value);
+});
+
+$("topic").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    $("run-form").requestSubmit();
+  }
+});
+
+const EMPTY = $("empty").outerHTML;
+$("new-brief").addEventListener("click", () => {
+  runId = null;
+  $("thread").innerHTML = EMPTY;
+  bindPrompts();
+  $("topic").value = "";
+  $("topic").focus();
+  text("art-title", "No brief yet");
+  $("status").textContent = "";
+  $("draft").innerHTML = `<p class="meta">The writer has not been called.</p>`;
+});
+
+function bindPrompts() {
+  for (const button of document.querySelectorAll(".prompt")) {
+    button.addEventListener("click", () => {
+      $("topic").value = button.dataset.topic;
+      if (button.dataset.topic === "Aider") $("mode").value = "offline";
+      startRun(button.dataset.topic, $("mode").value);
+    });
+  }
+}
+
+bindPrompts();
+
+for (const pill of document.querySelectorAll("[data-tab]")) {
+  pill.addEventListener("click", () => setTab(pill.dataset.tab));
+}
+
+$("edit-toggle").addEventListener("click", () => {
+  $("edit-box").classList.toggle("hidden");
+});
+
+for (const button of document.querySelectorAll("button[data-action]")) {
+  button.addEventListener("click", async (event) => {
+    event.preventDefault();
+    if (!runId) return;
+    const payload = { action: button.dataset.action, idempotency_key: crypto.randomUUID() };
+    if (payload.action === "edit") payload.edited_draft = $("edited").value;
+    const response = await fetch(`/v1/runs/${runId}/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const box = $("decision");
+    box.textContent = JSON.stringify(await response.json(), null, 2);
+    toggle("decision", true);
+    setTab("issues");
+    show(await (await fetch(`/v1/runs/${runId}`)).json());
+  });
+}
+
+loadConfig();
+</script>
+</body>
+</html>

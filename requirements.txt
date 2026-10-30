@@ -1,0 +1,5 @@
+# The graded path uses the Python standard library only.
+# Steps 1-4 and the integrated crew in brief/ run without an API key.
+# A hosted model is optional later. It must sit behind ModelClient.
+# CrewAI is the reference role pattern. It is not the control plane.
+# See REPORT.md section 8.

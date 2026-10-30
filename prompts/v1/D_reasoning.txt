@@ -1,0 +1,5 @@
+INTERMEDIATE FIELDS
+Before choosing action, name these checks. Do not add the names as JSON keys.
+- cited_urls: the evidence URLs you actually used
+- numbers_in_evidence: every number printed in those snippets
+Then emit only the output-contract JSON.

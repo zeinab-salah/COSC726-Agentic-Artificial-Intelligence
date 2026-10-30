@@ -1,0 +1,6 @@
+[
+  {"id": "aider", "topic": "Aider", "expect": "APPROVED", "writer_faults": 0},
+  {"id": "flowise", "topic": "Flowise", "expect": "APPROVED", "writer_faults": 1},
+  {"id": "browse-ai", "topic": "Browse AI", "expect": "APPROVED", "writer_faults": 0},
+  {"id": "nimbus-relay", "topic": "NimbusRelay 9", "expect": "ESCALATED", "writer_faults": 0}
+]
